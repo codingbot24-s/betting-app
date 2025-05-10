@@ -226,7 +226,7 @@ func GetTransactionHistory(w http.ResponseWriter, r *http.Request) {
 			ID:              t.ID,
 			CreatedAt:       t.CreatedAt,
 			UpdatedAt:       t.UpdatedAt,
-			UserID:          t.UserID,
+			UserID:          t.User.ID,
 			Amount:          t.Amount,
 			Description:     t.Description,
 			TransactionDate: t.TransactionDate,
@@ -260,6 +260,6 @@ func GetBalancePublic(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "User not found", http.StatusUnauthorized)
 		return
 	}
-	fmt.Println(user)
+	
 	json.NewEncoder(w).Encode(user.Balance)
 }

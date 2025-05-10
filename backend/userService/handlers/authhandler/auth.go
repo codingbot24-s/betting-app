@@ -16,6 +16,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+
+// we need to create a role in the database for the user
+
 var validate = validator.New()
 
 type RegisterResponse struct {
@@ -75,7 +78,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := helpers.GenerateToken(strconv.FormatUint(uint64(user.ID), 10))
+	token, err := helpers.GenerateToken(strconv.FormatUint(uint64(user.ID), 10), user.Role)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

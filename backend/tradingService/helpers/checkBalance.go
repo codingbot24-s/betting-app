@@ -1,9 +1,9 @@
 package helpers
 
 import (
-	"fmt"
-	"io"
+	"encoding/json"
 	
+	"io"
 
 	"net/http"
 	"net/url"
@@ -15,6 +15,8 @@ func CheckBalance(userID string) (float64, error) {
 	
 	// Get the balance from the user service
 	// load url from .env file
+
+	
 	requrl := GetEnv("CHECK_BALANCE_URL")
 
 	// Parse the url 
@@ -28,22 +30,28 @@ func CheckBalance(userID string) (float64, error) {
 	parsedUrl.RawQuery = query.Encode()
 
 	// make the api call
+	
 	resp, err := http.Get(parsedUrl.String())
 	if err != nil {
 		panic(err)
 	}
 
 	defer resp.Body.Close()
-
+	
 	var balance float64
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
 	}
+	// Unmarshal the response body
+	
+	err = json.Unmarshal(body, &balance)
+	if err != nil {
+		
+		return 0, err
+	}
 
-	fmt.Println(string(body))
-
-	return balance, err
+	return balance, nil
 }
 
 

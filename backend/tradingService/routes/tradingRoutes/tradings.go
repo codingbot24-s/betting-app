@@ -11,7 +11,7 @@ import (
 
 func SetupTradingRoutes(router *mux.Router) *mux.Router {
 	router.Handle("/buy", middlewares.AuthMiddleware(http.HandlerFunc(tradingHandlers.Buy))).Methods("POST")
-	
+	router.Handle("/sell", middlewares.AuthMiddleware(http.HandlerFunc(tradingHandlers.Sell))).Methods("POST")	
 	return router
 }
 

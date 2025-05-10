@@ -7,14 +7,16 @@ import (
 )
 
 // models
-
+// user will have a role 
 type User struct {
 	gorm.Model                 
 	Username     string        `json:"username" gorm:"unique;not null" validate:"required,min=3,max=32"`
 	Password     string        `json:"password" gorm:"not null" validate:"required,min=6"`
 	Email        string        `json:"email" gorm:"unique;not null" validate:"required,email"`
 	Balance      float64       `json:"balance" gorm:"default:0" validate:"gte=0"`
-	Transactions []Transaction `json:"transactions" gorm:"foreignKey:UserID"` // One-to-many relationship
+	Role         string        `json:"role" gorm:"default:'user'" validate:"required,oneof=admin user"`
+	Transactions []Transaction `json:"transactions" gorm:"foreignKey:UserID"` 
+
 }
 
 type Transaction struct {

@@ -38,10 +38,11 @@ func HashPassword(password string) (string, error) {
 func ComparePassword(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
-
-func GenerateToken(userID string) (string, error) {
+// we need to add role also in the token
+func GenerateToken(userID string, role string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
+		"role":    role,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	})
 	return token.SignedString([]byte(GetEnv("JWT_SECRET")))
@@ -65,15 +66,18 @@ func GetUserIDFromToken(token *jwt.Token) (string, error) {
 	return userID, nil
 }
 
-func SubtractUserBalance(db *gorm.DB, userID string, amount float64) error {
+func SubtractUserBalanceAndReturnCurrentBalance(db *gorm.DB, userID string, amount float64) (float64, error) {
 	// Use transaction to prevent race conditions
-	return db.Transaction(func(tx *gorm.DB) error {
+	var currentBalance float64
+	
+	err := db.Transaction(func(tx *gorm.DB) error {
 		var user models.User
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&user, "id = ?", userID).Error; err != nil {
 			return fmt.Errorf("user not found: %w", err)
 		}
 
 		if user.Balance < amount {
+			fmt.Println("amount:", amount)
 			return fmt.Errorf("insufficient balance for user %s", userID)
 		}
 
@@ -81,8 +85,11 @@ func SubtractUserBalance(db *gorm.DB, userID string, amount float64) error {
 			return fmt.Errorf("failed to subtract balance: %w", err)
 		}
 
+		currentBalance = user.Balance - amount
 		return nil
 	})
+
+	return currentBalance, err	
 }
 
 

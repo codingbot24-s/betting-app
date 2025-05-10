@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/codingbot24-s/db/models"
-	
+	"github.com/google/uuid"
+
 	"github.com/segmentio/kafka-go"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -16,28 +17,32 @@ import (
 
 // outbox pattern
 
+func CreateOrder(db *gorm.DB, order models.Order) error {
 
-
-
-
-func CreateOrder(db *gorm.DB ,order models.Order) error {
 	tx := db.Begin()
 
-	if err := tx.Create(&order).Error;err != nil {
+	if err := tx.Create(&order).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
-	
+
+	// need to calculate total
+
+	order.Total = order.Price * float64(order.Quantity)
+
 	payload := map[string]interface{}{
 		"User_id": order.UserID,
-		"Amount": order.Price,
+		"Amount":  order.Total,
 	}
-	data,err := json.Marshal(payload)
+
+	fmt.Println("payload", payload)
+	data, err := json.Marshal(payload)
 	if err != nil {
 		tx.Rollback()
 	}
 
 	event := models.OutBoxEvent{
+		ID:        uuid.New(),
 		EventType: "order_created",
 		Payload:   datatypes.JSON(data),
 		Processed: false,
@@ -52,14 +57,13 @@ func CreateOrder(db *gorm.DB ,order models.Order) error {
 	return tx.Commit().Error
 }
 
-
 func StartOutboxProcessor(db *gorm.DB, writer *kafka.Writer) {
 	go func() {
 		for {
 			if err := ProcessOutboxToKafka(db, writer); err != nil {
 				log.Printf("Outbox processing failed: %v", err)
 			}
-			time.Sleep(3 * time.Second) 
+			time.Sleep(3 * time.Second)
 		}
 	}()
 }
@@ -73,8 +77,7 @@ func ProcessOutboxToKafka(db *gorm.DB, writer *kafka.Writer) error {
 	for _, event := range events {
 		log.Printf("Sending event %s to Kafka...\n", event.ID)
 
-		
-		//ka
+		//kafka with retry
 		retryErr := retry(3, 2*time.Second, func() error {
 			return writer.WriteMessages(context.Background(), kafka.Message{
 				Key:   []byte(event.EventType),
@@ -84,10 +87,13 @@ func ProcessOutboxToKafka(db *gorm.DB, writer *kafka.Writer) error {
 
 		if retryErr != nil {
 			log.Printf("Failed to publish event %s after retries: %v\n", event.ID, retryErr)
-			continue 
+			continue
 		}
 
-		if err := db.Model(&event).Update("processed", true).Error; err != nil {
+		// update the outbox set processed to true
+		if err := db.Model(&models.OutBoxEvent{}).
+			Where("id = ?", event.ID).
+			Update("processed", true).Error; err != nil {
 			log.Printf("Failed to mark event %s as processed: %v\n", event.ID, err)
 		} else {
 			log.Printf("Event %s sent and marked as processed\n", event.ID)
