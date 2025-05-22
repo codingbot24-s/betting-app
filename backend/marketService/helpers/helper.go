@@ -3,12 +3,11 @@ package helpers
 import (
 	"log"
 	"os"
-	"fmt"
+	"time"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 )
-
-
 
 func GetEnv(key string) string {
 	err := godotenv.Load()
@@ -21,7 +20,7 @@ func GetEnv(key string) string {
 // verify the jwt then extract role from token
 func VerifyToken(token string) (string, error) {
 	var claims jwt.MapClaims
-	fmt.Println("token parsing started")
+
 	tokenClaims, err := jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(GetEnv("JWT_SECRET")), nil
 	})
@@ -34,5 +33,12 @@ func VerifyToken(token string) (string, error) {
 	return claims["role"].(string), nil
 }
 
+const TimeFormat = "2006-01-02 15:04"
 
+func ParseTime(timeStr string) (time.Time, error) {
+	return time.Parse(TimeFormat, timeStr)
+}
 
+func FormatTime(t time.Time) string {
+	return t.Format(TimeFormat)
+}

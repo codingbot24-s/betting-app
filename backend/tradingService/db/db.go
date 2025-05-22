@@ -6,6 +6,7 @@ import (
 
 	"github.com/codingbot24-s/db/models"
 	"github.com/codingbot24-s/helpers"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -24,7 +25,7 @@ func ConnectToDB() *gorm.DB {
 }
 
 func AutoMigrate(db *gorm.DB) {
-	err := db.AutoMigrate(&models.Order{}, &models.Holding{}, &models.OutBoxEvent{})
+	err := db.AutoMigrate(&models.Order{}, &models.Holding{}, &models.OutBoxEvent{}, &models.Position{})
 	if err != nil {
 		log.Fatal("Failed to migrate models:", err)
 	}

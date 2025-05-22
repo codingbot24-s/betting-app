@@ -1,14 +1,10 @@
 package helpers
 
 import (
-	"encoding/json"
 	"errors"
-	"time"
 
-	"io"
 	"log"
-	"net/http"
-	"net/url"
+
 	"os"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -27,64 +23,24 @@ func GetEnv(key string) string {
 	return value
 }
 
-
-func ValidateToken(tokenstr string ) (*jwt.Token,error){
-	return jwt.Parse(tokenstr,func(token * jwt.Token)(interface{},error){
-		return []byte(GetEnv("JWT_SECRET")),nil
+func ValidateToken(tokenstr string) (*jwt.Token, error) {
+	return jwt.Parse(tokenstr, func(token *jwt.Token) (interface{}, error) {
+		return []byte(GetEnv("JWT_SECRET")), nil
 	})
 }
 
-func GetUserIDFromToken(token *jwt.Token) (string,error) {
-	claims,ok := token.Claims.(jwt.MapClaims)
+func GetUserIDFromToken(token *jwt.Token) (string, error) {
+	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
 		return "", errors.New("invalid token")
 	}
-	userId,ok := claims["user_id"].(string) 
-	if !ok{
+	userId, ok := claims["user_id"].(string)
+	if !ok {
 		return "", errors.New("invalid token")
-	} 
-		
-	return userId,nil
-
-}
-
-func GetTeamSlug() []string {
-	// return will be array of slugs
-	// by making a rest call to the team service api/teams/slug
-	baseurl := GetEnv("TEAM_SERVICE_URL_FOR_FETCHING_SLUG")
-	// Parse the url
-	parsedUrl, err := url.Parse(baseurl)
-
-	if err != nil {
-		log.Fatal("Error parsing URL:", err)
-		return nil
 	}
 
-	resp, err := http.Get(parsedUrl.String())
+	return userId, nil
 
-	if err != nil {
-		log.Fatal("Error making GET request:", err)
-		return nil
-	}
-	defer resp.Body.Close()
-
-	body,err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		log.Fatal("Error reading response body:", err)
-		return nil
-	}
-
-		
-
-	// Unmarshal the response body into a slice of strings
-	var slugs []string
-	err = json.Unmarshal(body, &slugs)	
-	if err != nil {
-		log.Fatal("Error unmarshalling response body:", err)
-		return nil
-	}
-	return slugs
 }
 
 type OrderType string
@@ -95,32 +51,25 @@ const (
 )
 
 type Order struct {
-	Type OrderType 
+	Type OrderType
 }
 
-// Check the Order Type
+type SideType string
 
-func CheckOrderType(orderType OrderType) bool {
-	switch orderType {
-	case Buy, Sell:
+const (
+	Yes SideType = "YES"
+	No  SideType = "NO"
+)
+
+type Side struct {
+	Type SideType
+}
+
+func CheckSideType(sideType SideType) bool {
+	switch sideType {
+	case Yes, No:
 		return true
 	default:
 		return false
 	}
-}
-
-
-
-func retry(attempts int, sleep time.Duration, fn func() error) error {
-	err := fn()
-	if err == nil {
-		return nil
-	}
-
-	if attempts--; attempts > 0 {
-		time.Sleep(sleep)
-		return retry(attempts, sleep*2, fn)
-	}
-
-	return err
 }
