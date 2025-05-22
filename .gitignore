@@ -2,3 +2,4 @@ backend/teamService/.env
 backend/tradingService/.env
 backend/userService/.env
 backend/marketService/.env
+.vscode/settings.json
